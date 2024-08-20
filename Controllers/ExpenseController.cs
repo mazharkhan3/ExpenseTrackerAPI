@@ -1,4 +1,5 @@
 ﻿using ExpenseTrackerAPI.Data;
+using ExpenseTrackerAPI.Models;
 using ExpenseTrackerAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,16 +13,23 @@ public class ExpenseController : ControllerBase
 {
     private readonly ExpenseService _expenseService;
     private readonly UserService _userService;
+    private readonly CategoryService _categoryService;
 
-    public ExpenseController(ExpenseService expenseService, UserService userService)
+    public ExpenseController(ExpenseService expenseService, UserService userService, CategoryService categoryService)
     {
         _expenseService = expenseService;
         _userService = userService;
+        _categoryService = categoryService;
     }
     
     [HttpPost]
     public async Task<IActionResult> CreateExpense([FromBody] Expense expense)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest("All fields are required");
+        }
+        
         var userId = _userService.GetUserId();
 
         if (userId == null)
@@ -37,6 +45,16 @@ public class ExpenseController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateExpense(string id, [FromBody] Expense expense)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest("All fields are required");
+        }
+        
+        if (id != expense.Id)
+        {
+            return BadRequest("Expense id is not correct");
+        }
+        
         var expenseDb = await _expenseService.GetExpense(id);
 
         if (expenseDb == null)
@@ -56,8 +74,47 @@ public class ExpenseController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAllExpenses()
     {
-        Console.WriteLine("UserID " + _userService.GetUserId());
-        return Ok(await _expenseService.GetExpenses());
+        var expensesListDto = new List<GetAllExpenseDTO>();
+        
+        var expenses = await _expenseService.GetExpenses();
+
+        foreach (var expense in expenses)
+        {
+            var expenseDto = new GetAllExpenseDTO()
+            {
+                Id = expense.Id,
+                Title = expense.Title,
+                Description = expense.Description,
+                Amount = expense.Amount,
+                Date = expense.Date,
+            };
+            
+            var user = await _userService.GetUser(expense.UserId!);
+            var category = await _categoryService.GetCategory(expense.CategoryId!);
+            
+            if (user != null)
+            {
+                expenseDto.User = new GetUserDTO()
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    Name = user.Name,
+                };
+            }
+            
+            if (category != null)
+            {
+                expenseDto.Category = new GetCategoryDTO()
+                {
+                    Id = category.Id,
+                    Title = category.Title,
+                };
+            }
+            
+            expensesListDto.Add(expenseDto);
+        }
+        
+        return Ok(expensesListDto);
     }
 
     [HttpGet("{id}")]

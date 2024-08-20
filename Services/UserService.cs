@@ -45,6 +45,11 @@ public class UserService
 
         return GenerateJwtToken(user);
     }
+    
+    public async Task<User?> GetUser(string id)
+    {
+        return await _entities.Find(u => u.Id == id).FirstOrDefaultAsync();
+    }
 
     private string GenerateJwtToken(User user)
     {

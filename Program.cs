@@ -49,6 +49,7 @@ builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<ExpenseService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<CategoryService>();
 
 builder.Services.AddControllers();
 
